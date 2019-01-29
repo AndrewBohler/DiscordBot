@@ -1,24 +1,55 @@
 import asyncio
 import os
+from pathlib import Path
 import sys
 
 import discord  # As of Jan 2019 Discord.py needs python 3.5 or 3.6
 from google_lib import search_results, print_search_results
 
-# you need to create TOKEN.txt with the bot token on first line
-file = open('TOKEN.txt')
-TOKEN = file.readline()
-file.close()
+import calculator
 
 client = discord.Client()
-testChanID = '538573824271187999'  # developer test channel
+TOKEN = str() # Don't put the bot token here, paste it into TOKEN.txt
+testChanID = '538573824271187999'
 
 
-# ----- non asyncronis functions -------#
+# ----- non asyncronis functions ------ #
 # ------------------------------------- #
 
 
+def count_members(unique=True):
+    """Counts members across all servers."""
+    if unique==True:
+        members = set()
+        for member in client.get_all_members():
+            members.add(member)
+
+        return len(members)
+    else:
+        members = int(0)
+        for member in client.get_all_members():
+            members += 1
+        return members
+
+
+def get_token():
+    """Sets the bot's token to whatever is on the first line of TOKEN.txt\n
+    Will create TOKEN.txt if it doesn't already exists for convenience"""
+    try:
+        with open('TOKEN.txt') as f:
+            token = f.readline().strip()
+            if token == '':
+                raise Exception(
+                    "'TOKEN.txt' is blank. Copy token into first line and run again")
+            return token
+    except FileNotFoundError:
+        Path('TOKEN.txt', exist_ok=True).touch()
+        raise FileNotFoundError(
+            "Created 'TOKEN.txt'. Copy token into the first line and run again.")
+
+
 def list_channels():
+    """Prints a list of all channels, probably only useful for testing."""
     try:
         print('attempting to list all channels...')
         for channel in client.get_all_channels():
@@ -28,6 +59,7 @@ def list_channels():
 
 
 def channel_lookup(channelid):
+    """Finds a Discord.Client.Channel object by matching the ID"""
     for channel in client.get_all_channels():
         if channel.id == channelid:
             print(f'found channel with id={channelid}')
@@ -41,6 +73,7 @@ def channel_lookup(channelid):
 
 @client.event
 async def spam(message: str) -> None:
+    """Sends a message to all channels, use sparingly!"""
     for channel in client.get_all_channels():
         try:
             await client.send_message(
@@ -57,6 +90,8 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print('-----')
+    await client.change_presence(Game=discord.Game(
+        name=f'Serving {count_members()} unique members and {len(client.servers)} servers'))
     list_channels()
     channel_lookup('testChanID')  # testing function
     # await spam("Patcha online")
@@ -82,7 +117,7 @@ async def get_messsage(message):
                     tmp, 'You have {} messages.'.format(counter))
             elif message.content.startswith('sleep'):
                 await asyncio.sleep(5)
-                await client.send_message(message.channel, 'Dont sleeping')
+                await client.send_message(message.channel, 'Done sleeping')
 
     elif content.startswith('google'):
         search_string = content[len('google') + 1:]
@@ -105,5 +140,11 @@ async def on_message(message):  # I think the func name has to be 'on_message'
 # ------- start the bot? ---------- #
 # --------------------------------- #
 
-client.run(TOKEN)
-client.connect()
+
+if __name__ == "__main__":
+    TOKEN = get_token()
+    try:
+        client.run(TOKEN)
+    except discord.errors.LoginFailure:
+        if not token:
+            print("No token read")
