@@ -33,8 +33,10 @@ def count_members(unique=True):
 
 
 def get_token():
-    """Sets the bot's token to whatever is on the first line of TOKEN.txt\n
-    Will create TOKEN.txt if it doesn't already exists for convenience"""
+    """Sets the bot's token to whatever is on the first line of TOKEN.txt
+    
+    Will create TOKEN.txt if it doesn't already exists for convenience
+    """
     try:
         with open('TOKEN.txt') as f:
             token = f.readline().strip()
@@ -52,10 +54,13 @@ def list_channels():
     """Prints a list of all channels, probably only useful for testing."""
     try:
         print('attempting to list all channels...')
+        n = 0
         for channel in client.get_all_channels():
-            print(channel)
+            n += 1
+            print(f'{n}: {channel.server} {Channel.position} {channel.type} {channel.id} {channel}')
+        print(f'Found {n} channels')
     except:
-        print('error: failed to list all channels')
+        print('error: failed to list all channels {}')
 
 
 def channel_lookup(channelid):
@@ -90,14 +95,13 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print('-----')
-    await client.change_presence(Game=discord.Game(
+    await client.change_presence(game=discord.Game(
         name=f'Serving {count_members()} unique members and {len(client.servers)} servers'))
     list_channels()
     channel_lookup('testChanID')  # testing function
     # await spam("Patcha online")
     # while True:
     #     await client.get_message()
-
 
 
 @client.event
