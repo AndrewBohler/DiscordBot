@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 
 import discord  # As of Jan 2019 Discord.py needs python 3.5 or 3.6
+
 from google_lib import search_results, print_search_results
 
 import calculator
@@ -150,5 +151,5 @@ if __name__ == "__main__":
     try:
         client.run(TOKEN)
     except discord.errors.LoginFailure:
-        if not token:
+        if not TOKEN:
             print("No token read")
