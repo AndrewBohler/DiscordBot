@@ -9,9 +9,12 @@ from google_lib import search_results, print_search_results
 
 import calculator
 
+from config import (
+    TEST_CHANNEL_ID,
+    TOKEN,
+)
+
 client = discord.Client()
-TOKEN = str() # Don't put the bot token here, paste it into TOKEN.txt
-testChanID = '538573824271187999'
 
 
 # ----- non asyncronis functions ------ #
@@ -99,7 +102,7 @@ async def on_ready():
     await client.change_presence(game=discord.Game(
         name=f'Serving {count_members()} unique members and {len(client.servers)} servers'))
     list_channels()
-    channel_lookup('testChanID')  # testing function
+    channel_lookup('TEST_CHANNEL_ID')  # testing function
     # await spam("Patcha online")
     # while True:
     #     await client.get_message()
