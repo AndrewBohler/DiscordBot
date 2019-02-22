@@ -150,9 +150,10 @@ async def on_message(message):  # I think the func name has to be 'on_message'
 
 
 if __name__ == "__main__":
-    TOKEN = get_token()
+    print(f'discord.py version {discord.__version__}')
     try:
         client.run(TOKEN)
     except discord.errors.LoginFailure:
         if not TOKEN:
-            print("No token read")
+            raise Exception("No token read")
+        else: raise
