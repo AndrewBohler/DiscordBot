@@ -4,12 +4,10 @@ import os
 from pathlib import Path
 import sys
 
-import discord  # As of Jan 2019 Discord.py needs python 3.5 or 3.6
-
+import discord
 from google_lib import search_results, print_search_results
 
 import calculator
-
 import config
 
 client = discord.Client()
@@ -19,9 +17,9 @@ client = discord.Client()
 # ------------------------------------- #
 
 
-def count_members(unique=True):
+def count_members(unique=True) -> int:
     """Counts members across all servers."""
-    if unique==True:
+    if unique:
         members = set()
         for member in client.get_all_members():
             members.add(member)
@@ -34,10 +32,15 @@ def count_members(unique=True):
         return members
 
 
-def get_token():
-    """Sets the bot's token to whatever is on the first line of TOKEN.txt
-    
-    Will create TOKEN.txt if it doesn't already exists for convenience
+def serving_msg() -> str:
+    msg = '{} unique members in {} servers'.format(
+        count_members(), len(client.servers))
+    return msg
+
+
+def get_token() -> str:
+    """Depricated, probably should be removed now that the token is stored in
+    an environment variable
     """
     try:
         with open('TOKEN.txt') as f:
@@ -54,25 +57,29 @@ def get_token():
 
 def list_channels():
     """Prints a list of all channels, probably only useful for testing."""
-    try:
-        print('attempting to list all channels...')
-        n = 0
-        for channel in client.get_all_channels():
-            n += 1
-            print(f'{n}: {channel.server} {Channel.position} {channel.type} {channel.id} {channel}')
-        print(f'Found {n} channels')
-    except:
-        print('error: failed to list all channels {}')
+    print('listing all channels...')
+    print('|_{0:_^5}_|_{1:_^24}_|_{2:_^3}_|_{3:_^24}_|_{4:_^5}_|_{5:_^18}_|'.format(
+            'num', 'server', 'pos', 'channel', 'type', 'channel id'))
+    for i, channel in enumerate(client.get_all_channels()):
+        print('| {0:5} | {1:24} | {2:3} | {3:24} | {4:>5} | {5:18} |'.format(
+            i, channel.server.name, channel.position, channel.name,
+            channel.type, channel.id))
+    print(f'Found {i + 1} channels')
 
 
 def channel_lookup(channelid):
     """Finds a Discord.Client.Channel object by matching the ID"""
     for channel in client.get_all_channels():
         if channel.id == channelid:
-            print(f'found channel with id={channelid}')
+            print(f'found channel {channel.name} with id={channelid}')
             return channel
-        # else:
-        #     print(f'failed to find channel with id={channelid}')
+    print(f'failed to find channel with id={channelid}')
+
+# ------- async functions -------- #
+# -------------------------------- #
+
+
+# async def
 
 
 # ------- client events ---------- #
@@ -93,12 +100,12 @@ async def spam(message: str) -> None:
 
 @client.event
 async def on_ready():
-    print('Logged in as:')
-    print(client.user.name)
-    print(client.user.id)
-    print('-----')
-    await client.change_presence(game=discord.Game(
-        name=f'Serving {count_members()} unique members and {len(client.servers)} servers'))
+    print('------------------------------------------------------')
+    print(f'Logged in as: {client.user.name} id: {client.user.id}')
+    print(f'shard {client.shard_id} of {client.shard_count}  ')
+    print('------------------------------------------------------')
+    await client.change_presence(
+        game=discord.Game(name=serving_msg(), type=2))
     list_channels()
     channel_lookup(config.TEST_CHANNEL_ID)  # testing function
 
@@ -106,8 +113,6 @@ async def on_ready():
 @client.event
 async def get_messsage(message):
     content = message.content
-    await spam(f"Received message: '{content}'")
-
     if content.startswith('test'):
         counter = 0
         tmp = await client.send_message(
@@ -118,25 +123,24 @@ async def get_messsage(message):
 
                 await client.edit_message(
                     tmp, 'You have {} messages.'.format(counter))
-            elif message.content.startswith('sleep'):
-                await asyncio.sleep(5)
-                await client.send_message(message.channel, 'Done sleeping')
+    elif message.content.startswith('sleep'):
+        await asyncio.sleep(5)
+        await client.send_message(message.channel, 'Done sleeping')
 
     elif content.startswith('google'):
         search_string = content[len('google') + 1:]
         results = search_results(search_string, num_pages=1)
-        await spam(" ".join(results))
-        # await client.send_message(
-        #    destination=message.channel,
-        #    content=" ".join(results),
-        # )
-
+        await client.send_message(
+           destination=message.channel,
+           content=" ".join(results),
+        )
 
 
 @client.event
 async def on_message(message):  # I think the func name has to be 'on_message'
     if message.content.startswith('!'):
-        msg = 'You used the prefix "!" ... I current can not do anything though, sorry!'
+        msg = f"sorry {message.content.split(' ')[0]} is not a command... "
+        msg += "well, actually there aren't any commands right now..."
         await client.send_message(message.channel, msg)
 
 
@@ -152,4 +156,5 @@ if __name__ == "__main__":
     except discord.errors.LoginFailure:
         if not config.TOKEN:
             raise Exception("No token read")
-        else: raise
+        else:
+            raise
