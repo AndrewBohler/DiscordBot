@@ -10,10 +10,7 @@ from google_lib import search_results, print_search_results
 
 import calculator
 
-from config import (
-    TEST_CHANNEL_ID,
-    TOKEN,
-)
+import config
 
 client = discord.Client()
 
@@ -103,7 +100,7 @@ async def on_ready():
     await client.change_presence(game=discord.Game(
         name=f'Serving {count_members()} unique members and {len(client.servers)} servers'))
     list_channels()
-    channel_lookup('TEST_CHANNEL_ID')  # testing function
+    channel_lookup(config.TEST_CHANNEL_ID)  # testing function
 
 
 @client.event
@@ -151,8 +148,8 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     print(f'discord.py version {discord.__version__}')
     try:
-        client.run(TOKEN)
+        client.run(config.TOKEN)
     except discord.errors.LoginFailure:
-        if not TOKEN:
+        if not config.TOKEN:
             raise Exception("No token read")
         else: raise
