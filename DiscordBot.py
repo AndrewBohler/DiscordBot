@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 from pathlib import Path
 import sys
@@ -103,9 +104,6 @@ async def on_ready():
         name=f'Serving {count_members()} unique members and {len(client.servers)} servers'))
     list_channels()
     channel_lookup('TEST_CHANNEL_ID')  # testing function
-    # await spam("Patcha online")
-    # while True:
-    #     await client.get_message()
 
 
 @client.event
@@ -150,6 +148,7 @@ async def on_message(message):  # I think the func name has to be 'on_message'
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     print(f'discord.py version {discord.__version__}')
     try:
         client.run(TOKEN)
