@@ -5,12 +5,35 @@ from pathlib import Path
 import sys
 
 import discord
+from discord import utils, Status
 from google_lib import search_results, print_search_results
 
 import calculator
+import commands
 import config
 
+PREFIX = '!'
+
 client = discord.Client()
+# terminal = Terminal()
+
+# class Terminal:
+
+#     def __init__(self):
+#         self.run = False
+    
+#     async def run(self):
+#         self.run = True
+        
+
+#     async def _loop():
+#         while self.run is True:
+#             await command = self._get_input()
+#             await commands.create(command, PREFIX, terminal=True)
+#     async def _get_input():
+#         msg = input('<DiscordBot> ')
+
+
 
 
 # ----- non asyncronis functions ------ #
@@ -68,50 +91,52 @@ def list_channels():
 
 
 def channel_lookup(channelid):
-    """Finds a Discord.Client.Channel object by matching the ID"""
+    """Finds a discord.Client.Channel object by matching the ID"""
     for channel in client.get_all_channels():
         if channel.id == channelid:
-            print(f'found channel {channel.name} with id={channelid}')
+            print(f'found channel "{channel.name}"" with id={channelid}')
             return channel
     print(f'failed to find channel with id={channelid}')
+
+
+def find_user(server: discord.server, user: str) -> bool:
+    member = utils.find(lambda m: m.name == user, server.members)
+    return member
+
 
 # ------- async functions -------- #
 # -------------------------------- #
 
-
-# async def
+async def parse_args(args) -> (str, list, list):
+    """converts a message into arguments and flags"""
+    cmd = args.pop(0)
+    flags = []
+    for i, arg in enumerate(args):
+        if arg[0] == '-':
+            flags.append(args[i])
+        else:
+            args = args[i:]
+    print('command: "{cmd}" flags: {flags} message: {args}')
 
 
 # ------- client events ---------- #
 # -------------------------------- #
 
 @client.event
-async def spam(message: str) -> None:
-    """Sends a message to all channels, use sparingly!"""
-    for channel in client.get_all_channels():
-        try:
-            await client.send_message(
-                destination=channel,
-                content=message
-            )
-        except:
-            pass
-
-
-@client.event
 async def on_ready():
     print('------------------------------------------------------')
     print(f'Logged in as: {client.user.name} id: {client.user.id}')
-    print(f'shard {client.shard_id} of {client.shard_count}  ')
+    print(f'Shard #{client.shard_id} of {client.shard_count}')
     print('------------------------------------------------------')
+    commands.client = client
     await client.change_presence(
         game=discord.Game(name=serving_msg(), type=2))
-    list_channels()
+    list_channels()  # testing function
     channel_lookup(config.TEST_CHANNEL_ID)  # testing function
 
 
 @client.event
-async def get_messsage(message):
+async def get_messsage(message):  # From tutorial, only for reference
     content = message.content
     if content.startswith('test'):
         counter = 0
@@ -137,11 +162,11 @@ async def get_messsage(message):
 
 
 @client.event
-async def on_message(message):  # I think the func name has to be 'on_message'
-    if message.content.startswith('!'):
-        msg = f"sorry {message.content.split(' ')[0]} is not a command... "
-        msg += "well, actually there aren't any commands right now..."
-        await client.send_message(message.channel, msg)
+async def on_message(message):  # This is overwritting the default on_message()
+    if message.content.startswith(PREFIX):
+        msg = f'Recieved: {message.content}\nAttempting to execute command...'
+        await client.send_message(message.channel, content=msg)
+        asyncio.ensure_future(commands.create(message, PREFIX))
 
 
 # ------- start the bot? ---------- #
