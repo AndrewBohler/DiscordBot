@@ -11,10 +11,11 @@ from google_lib import search_results, print_search_results
 import calculator
 import commands
 import config
+import myclient
 
 PREFIX = '!'
 
-client = discord.Client()
+client = myclient.Client()
 # terminal = Terminal()
 
 # class Terminal:
@@ -128,7 +129,6 @@ async def on_ready():
     print(f'Logged in as: {client.user.name} id: {client.user.id}')
     print(f'Shard #{client.shard_id} of {client.shard_count}')
     print('------------------------------------------------------')
-    commands.client = client
     await client.change_presence(
         game=discord.Game(name=serving_msg(), type=2))
     list_channels()  # testing function
@@ -166,7 +166,7 @@ async def on_message(message):  # This is overwritting the default on_message()
     if message.content.startswith(PREFIX):
         msg = f'Recieved: {message.content}\nAttempting to execute command...'
         await client.send_message(message.channel, content=msg)
-        asyncio.ensure_future(commands.create(message, PREFIX))
+        asyncio.ensure_future(commands.create(message, PREFIX, client))
 
 
 # ------- start the bot? ---------- #

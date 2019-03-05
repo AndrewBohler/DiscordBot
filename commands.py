@@ -1,23 +1,25 @@
 import asyncio
+from collections import deque
 import re
 
 import discord
 from discord import utils
 
+import config
 import DiscordBot
+import myclient
 
 # COMMANDS = {
 #     'spam': Spam()
 # }
 
-client = None
-
 
 class Command:
     """Carrier for commandline style arguments"""
-    def __init__(self, message: discord.message, prefix: str):
+    def __init__(self, message, prefix, client: myclient.Client):
         self.prefix = prefix
         self.channel = None
+        self.client = client
         self.command = None
         self.args = None
         self._message = message
@@ -44,18 +46,21 @@ class Command:
             return f'Command: {self.command} | Arguments: {self.args}'
 
     async def respond(self, msg: str):
-        await client.send_message(self._issued_from, msg)
+        await self.client.send_message(self._issued_from, content=msg)
 
     def test(self):
+        info = self._info()
         msg = '```\n' + self._message.content + '\n```'
-        msg += self._info()
+        msg += ('`' + info + '`')
         asyncio.ensure_future(self.respond(msg))
 
 
 class Spam:
 
-    def __init__(self):
-        self.loop = []
+    def __init__(self, command: Command, client):
+        self.client = client
+        self.loop = deque()
+        self.flags = dict()
         # self.options = {
         #     '-c': lambda msg,
         #     '--channel': self._set_channel()
@@ -69,14 +74,15 @@ class Spam:
                         self.flags[f]
 
     def _set_channel(self, ctx, msg, i) -> discord.Channel:
-        utils.g
+        pass
+
     async def _run_loop(self):
         remove = []
         for func in self.loop:
             try:
                 func()
             except:
-                self.loop.pop(len(self.loop))
+                self.loop.popleft()
 
     def execute(self, ctx, message):
         flags = []
@@ -84,7 +90,7 @@ class Spam:
         message = None
         single_quote = False
         double_quote = False
-        for i, item in enumerate(msg):
+        for i, item in enumerate(message):
             if single_quote:
                 if item[-1] == "'":
                     single_quote = False
@@ -101,9 +107,6 @@ class Spam:
 
         self.loop.append(tuple(channel, msg))
 
-async def create(message: discord.message, prefix):
-    command = Command(message, prefix)
+async def create(message: discord.message, prefix: str, client: discord.Client):
+    command = Command(message, prefix, client)
     command.print()
-    msg = '***So you think you can just ***' + command._message.content + '***?***'
-    await client.send_message(command._message.channel, content=msg)
-    await client.send_message(message.channel, content='(╯°□°）╯︵ ┻━┻')
