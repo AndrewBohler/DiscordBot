@@ -1,3 +1,5 @@
 __pycache__
+# TOKEN.txt is no longer used,
+# but don't want to expose it just incase someone still has it
 TOKEN.txt
 .vscode
