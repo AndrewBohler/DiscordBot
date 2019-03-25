@@ -164,9 +164,10 @@ async def get_messsage(message):  # From tutorial, only for reference
 @client.event
 async def on_message(message):  # This is overwritting the default on_message()
     if message.content.startswith(PREFIX):
-        msg = f'Recieved: {message.content}\nAttempting to execute command...'
-        await client.send_message(message.channel, content=msg)
         asyncio.ensure_future(commands.create(message, PREFIX, client))
+
+    else:
+        pass
 
 
 # ------- start the bot? ---------- #
