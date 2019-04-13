@@ -9,9 +9,8 @@ import config
 import DiscordBot
 import myclient
 
-# COMMANDS = {
-#     'spam': Spam()
-# }
+COMMANDS = {}
+PATTERN = re.compile(r'''('.*?'|".*?"|\S+)''')
 
 
 class Arg:
@@ -27,10 +26,23 @@ class Arg:
 
         0 unrecognized
         1 command: 'foo'
-        2 short flag: '-f'
-        3 long flag: '--flag'
-        4 nested (double or single) quotes:
-            'text symbols(!) commands or --flags'
+        2 short flag: '-b' or '--bar'
+        3 nested (double or single) quotes: 'anything inside quotes'
+    """
+    docstring = """
+    Single command-line style argument
+    
+    Properties
+    ----------
+    string : str
+        the argument string
+    type : int
+        The interpreted type of argument
+
+        0 unrecognized
+        1 command: 'foo'
+        2 short flag: '-b' or '--bar'
+        3 nested (double or single) quotes: 'anything inside quotes'
     """
     def __init__(self, string: str):
         self.string = string
@@ -40,14 +52,12 @@ class Arg:
 
     def _set_type(self):
         if self.string[0] in ('"', "'"):  # Quoted block
-            self.type = 4
-        elif self.string[:2] == '--':  # Long flag
             self.type = 3
-        elif self.string[0] == '-':  # Short flag
+        elif self.string[0] == '-':  # flag
             self.type = 2
         elif re.match(r'\w', self.string):  # Command (word)
             self.type = 1
-        else:  # Anything else, eg non word characters like '!'
+        else:  # Unknown, e.g. arg starts with non-word characters like '!'
             self.type = 0
     
     def __repr__(self):
@@ -68,80 +78,147 @@ class Arg:
             return False
 
 
+class ArgumentList:
+    def __init__(self, string):
+        self.args = [Arg(a) for a in re.findall(PATTERN, string)]
+        self.string = string
+        
+    def __repr__(self):
+        return (
+            f"{self.__class__.__module__}.{self.__class__.__qualname__}" +
+            f"('{self.string}')"
+        )
+
+    def __iter__(self):
+        yield from self.args
+
+    def __str__(self):
+        return f'{[str(arg) for arg in self]}'
+
+
 class Command:
-    """Carrier for commandline style arguments"""
-    def __init__(self, message, prefix, client: myclient.Client):
-        self.args = []
+    '''Subclass this to create custom commands.'''
+    client = None  # set this after importing
+    _commands = {}
+
+    def __init__(
+        self,
+        caller=None,
+        prefix='',
+        message=None,
+        *args, **kwargs
+    ):
+        self.args = ArgumentList(message.content)
         self.prefix = prefix
-        self.channel = None
-        self.client = client
-        self.command = None
-        self.index = 0
-        self.message = message
-        self.options = {
-            '--test': self.test(),
-            '-t': self.test()
-            }
-        self._pattern = re.compile(r'''(\w+|--?\w+|'.*?'|".*?")''')
-        self._issued_from = message.channel
+        self.caller = caller
+        self.kwargs = kwargs
 
-        self._parse(message.content)
-        for arg in self.args:
-            if arg[1] in (2, 3):
-                self.set_option(arg[0])
+    @property
+    def commands(self):
+        return __class__._commands
+
+    @classmethod
+    def name(cls):
+        return cls.__name__
+
+    @staticmethod
+    def load_commands():
+        cmdlist = {
+            c.__class__.__name__.lower(): c for c in __class__.__subclasses__}
+        __class__._commands.clear()
+        __class__._commands.update(cmdlist)
+
+    @staticmethod
+    def set_client(client):
+        __class__.client = client
+
+    def execute(self, *args, **kwargs):
+        '''Called when a command is issued.'''
+        raise NotImplementedError
+
+    def __repr__(self):
+        args = ', '.join(self.args)
+        kwargs = ', '.join([f'{k}={v}' for k, v in self.kwargs.items()])
+        return self.__qualname__ + f'({", ".join([args, kwargs])})'
+
+
+class Test(Command):
+    """Test command"""
+    def execute(self):
+        print('This is a test command!')
+        print(f'args: {self.args}')
+        print(f'kwargs: {self.kwargs}')
+        self.client.send_message(self.message.channel, self.test_message)
+
+    @property
+    def test_message(self):
+        msg = 'Command: `test`, '
+        msg += f'you supplied {len(self.args)} arguments:\n'
+        if self.args:
+            for i, arg in enumerate(args):
+                if i == 0:
+                    msg += f'`{arg}`'
+                else:
+                    msg += f', `{arg}`'
+        msg += '\nThank you for trying my bot.'
+        return msg
+
+
+class SubTest(Test):
+    @property
+    def test_message(self):
+        msg = 'Sub command: Test, '
+        msg += super().test_message
+
+
+#  Considering writing a function as a command rather than a class.
+#  Might be a better way to structure even if this changes back to a class.
+async def spam(command, args: list, client=None):
+    client = client
+    target = None
+    index = 0
+    options = {
+        '-t': set_target(),
+        '--target': set_target,
+        '-h': help(),
+        '--help': help()
+    }
+    for arg in args:
+        if arg.type in (2, 3):
+            options[arg.string]
+        elif arg.type == 1:
+            raise TypeError
+    
+    def flags():
+        "Methods for handling flags."
+        def set_target():
+            '''
+            -t, --target
+                |required| searches for "user" in server. If a exact match is found
+                sets "user" as the target
+            '''
+            target = args[i+1]
+            if not target.type == 1:
+                raise ValueError('Target must be username in quotes')
+
+        def set_channel():
+            pass
+
+    def commands():
+        "Method containg all internal commands."
+        def help():
+            if args[index + 1]:
+                send_message(
+                    options[arg.string].__doc__
+                )
             else:
-                break
-
-
-    def _parse(self, msg: str):
-        argList = re.findall(self._pattern, msg)
-        for arg in argList:
-            self.args.append(Arg(arg))
-
-
-    def print(self, verbose=0):
-        print(self._info(verbose))
-
-    def _info(self, verbose=0) -> str:
-        msg = ''
-        if verbose == 0:
-            return self.args
-        elif verbose == 1:
-            for arg in self.args:
-                msg += arg
-            return msg
-
-    async def respond(self, msg: str):
-        await self.client.send_message(self._issued_from, content=msg)
-
-    def test(self):
-        info = self._info()
-        msg = '```\n' + self.message.content + '\n```'
-        msg += ('`' + info + '`')
-        asyncio.ensure_future(self.respond(msg))
-
-    async def set_option(self, flag):
-        if flag in self.options.keys():
-            try:
-                self.options[flag]
-            except:
-                print(f'Failed to set option "{flag}".')
-        else:
-            print(f'Failed to set option {flag}, option not found.')
-
-    async def execute(self, index):
-        for arg in self.args[index:]:
-            if arg.type in (2, 3):
+                # msg ="\n".join([for flag in spam.flags.*: flag.__doc__])
                 pass
-            elif arg.type == 1:
-                pass
-            else:
-                break
 
 
 class Spam:
-
-    def __init__(self, command: Command, client, index=0):
+    """Spams text in text channel"""
+    def __init__(self, command, client=None, *args, **kwargs):
         self.client = client
         self.loop = deque()
         self.flags = dict()

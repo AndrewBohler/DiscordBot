@@ -14,7 +14,6 @@ import config
 import myclient
 
 PREFIX = '!'
-
 client = myclient.Client()
 # terminal = Terminal()
 
@@ -163,12 +162,42 @@ async def get_messsage(message):  # From tutorial, only for reference
 
 @client.event
 async def on_message(message):  # This is overwritting the default on_message()
-    if message.content.startswith(PREFIX):
-        asyncio.ensure_future(commands.create(message, PREFIX, client))
+    await handle_message(message)
 
+async def handle_message(message):
+    """Testing command execution by calling commands.'cmd from message'""" 
+    if message.author == client.user:
+        print(
+            f'Ignoring message {message.id}: Author is me ({client.user.name})'
+        )
+    elif message.content.startswith(PREFIX):
+        print(COMMANDS)
+        print(
+            f'Executing command invoked with "{PREFIX}"' +
+            f'from message {message.id}'
+        )
+        await execute_command(message, client)
     else:
-        pass
+        print(
+            f'Ignoring message {message.id}: not invoked with "{PREFIX}"'
+        )
 
+async def execute_command(message: discord.Message, client):
+    msg = message.content[len(PREFIX):]
+    arglist = commands.ArgumentList(msg)
+    response = '```python\n'
+    for arg in arglist:
+        response += f'>>>command.{str(arg)}\n'
+        try:
+            # !!! Very not safe !!!
+            # create a dict with valid commands and use that instead
+            response += str(eval(f'commands.{str(arg)}\n'))
+        except Exception as e:
+            response += f'Exception: {e}\n'
+            break
+    response += '```'
+    await client.send_message(message.channel, content=response)
+    del response
 
 # ------- start the bot? ---------- #
 # --------------------------------- #
