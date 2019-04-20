@@ -33,7 +33,7 @@ bot = MyBot(command_prefix='')
 
 @bot.command()
 async def joined(ctx):
-    await ctx.send(f'{ctx.author} joined at {ctx.author.joined_at}')
+    await ctx.send(f'`{ctx.author}` joined at `{ctx.author.joined_at}`')
 
 @bot.command()
 async def test(ctx):
@@ -43,6 +43,13 @@ async def test(ctx):
 
 def string_to_args(string: str, start=0, end=None):
     args = string.split(' ')
+    spaces = []
+    for i, arg in enumerate(args):
+        if arg == ' ':
+            spaces.append(i)
+    if spaces:
+        for i in spaces.reverse():
+            del args[i]
     if end is None or end > len(args) + 1:
         end = len(args) + 1
     return args[start:end]
